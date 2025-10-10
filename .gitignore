@@ -1,0 +1,32 @@
+# Kiro AI assistant files
+.kiro/
+
+# Rust
+/target/
+Cargo.lock
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/build/
+/dist/
+
+# Test files
+test_*
+*.tmp
+
+# Logs
+*.log
+*.log.*
+
+# Quarantine directory
+quarantine/

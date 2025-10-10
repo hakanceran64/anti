@@ -1,0 +1,71 @@
+# HADRON Antivirus Default Configuration
+
+[general]
+product_name = "HADRON Antivirus"
+version = "1.0.0"
+company = "HADRON Security"
+
+[realtime_protection]
+enabled = true
+scan_on_access = true
+scan_on_write = true
+scan_archives = true
+scan_email_attachments = true
+scan_network_drives = false
+scan_network_traffic = true
+
+[scan_settings]
+max_file_size_mb = 100
+scan_timeout_seconds = 30
+heuristic_level = 2
+use_machine_learning = true
+scan_packed_files = true
+max_scan_depth = 10
+
+[quarantine]
+max_size_gb = 10
+auto_delete_days = 30
+encrypt_files = true
+backup_original_permissions = true
+
+[updates]
+auto_update_enabled = true
+update_frequency_hours = 4
+use_delta_updates = true
+update_server_url = "https://updates.hadron-security.com"
+
+[logging]
+level = "info"
+max_file_size_mb = 50
+max_files = 10
+log_to_file = true
+log_to_console = false
+
+[network_monitoring]
+enabled = true
+monitor_dns = true
+monitor_http = true
+monitor_https = false
+block_malicious_domains = true
+
+[sandbox]
+timeout_seconds = 300
+max_memory_mb = 512
+enable_network = false
+redirect_filesystem = true
+monitor_registry = true
+analysis_depth = "standard"
+
+[ui]
+language = "en"
+theme = "system"
+show_notifications = true
+notification_level = "threats_only"
+minimize_to_tray = true
+
+[enterprise]
+# Enterprise policy settings (if applicable)
+allow_user_whitelist = true
+allow_disable_realtime = false
+allow_quarantine_restore = true
+require_admin_for_settings = false

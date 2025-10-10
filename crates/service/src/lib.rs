@@ -1,0 +1,30 @@
+pub mod service;
+pub mod api;
+// pub mod scan_engine; // Temporarily disabled due to compilation issues
+pub mod minimal_scan_engine;
+pub mod memory_scan_service;
+pub mod network_monitor_service;
+pub mod email_scan_service;
+pub mod sandbox_service;
+pub mod quarantine;
+pub mod update_manager;
+pub mod config_manager;
+pub mod event_logger;
+pub mod windows_service;
+pub mod lifecycle;
+
+// Re-export commonly used types
+pub use service::*;
+pub use api::*;
+// pub use scan_engine::*; // Temporarily disabled
+pub use minimal_scan_engine::*;
+pub use memory_scan_service::*;
+pub use network_monitor_service::*;
+pub use email_scan_service::*;
+pub use sandbox_service::*;
+pub use quarantine::*;
+pub use update_manager::*;
+pub use config_manager::*;
+pub use event_logger::*;
+pub use windows_service::*;
+pub use lifecycle::*;

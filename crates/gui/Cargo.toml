@@ -1,0 +1,38 @@
+[package]
+name = "hadron-gui"
+version.workspace = true
+authors.workspace = true
+description = "HADRON Antivirus GUI - User interface and control panel"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Core dependencies
+hadron-core = { path = "../core" }
+
+# Workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+
+# GUI framework (placeholder - will be replaced with actual Windows GUI framework)
+eframe = "0.24"
+egui = "0.24"
+env_logger = "0.10"
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+
+[[bin]]
+name = "hadron-gui"
+path = "src/main.rs"

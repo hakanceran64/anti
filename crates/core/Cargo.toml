@@ -1,0 +1,57 @@
+[package]
+name = "hadron-core"
+version.workspace = true
+authors.workspace = true
+description = "HADRON Antivirus Core - Core scanning and detection engine"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+config = { workspace = true }
+aes = { workspace = true }
+sha2 = { workspace = true }
+ring = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+winapi = { workspace = true }
+
+# YARA engine
+yara = "0.20"
+
+# Hash algorithms
+md5 = "0.7"
+sha1 = "0.10"
+
+# Random number generation for mock implementations
+rand = "0.8"
+
+[dev-dependencies]
+tempfile = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "signature_benchmark"
+harness = false
+
+[[bench]]
+name = "heuristic_benchmark"
+harness = false

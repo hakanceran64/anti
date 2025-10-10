@@ -1,0 +1,208 @@
+#!/bin/bash
+
+# Hadron Antivirus Post-installation Script
+# This script runs after the installation completes
+
+set -e
+
+APP_NAME="Hadron Antivirus"
+APP_BUNDLE="com.hadron.antivirus"
+SERVICE_PLIST="/Library/LaunchDaemons/$APP_BUNDLE.service.plist"
+APP_PATH="/Applications/$APP_NAME.app"
+CLI_PATH="/usr/local/bin/hadron-cli"
+
+echo "Post-installation script starting..."
+
+# Set proper permissions on installed files
+echo "Setting file permissions..."
+
+# Application bundle permissions
+if [[ -d "$APP_PATH" ]]; then
+    chown -R root:wheel "$APP_PATH"
+    chmod -R 755 "$APP_PATH"
+    chmod +x "$APP_PATH/Contents/MacOS/"*
+fi
+
+# CLI tool permissions
+if [[ -f "$CLI_PATH" ]]; then
+    chown root:wheel "$CLI_PATH"
+    chmod 755 "$CLI_PATH"
+fi
+
+# Service plist permissions
+if [[ -f "$SERVICE_PLIST" ]]; then
+    chown root:wheel "$SERVICE_PLIST"
+    chmod 644 "$SERVICE_PLIST"
+fi
+
+# Create application data directories
+echo "Creating application data directories..."
+APP_SUPPORT_DIR="/Library/Application Support/Hadron Antivirus"
+LOGS_DIR="/var/log/hadron-antivirus"
+QUARANTINE_DIR="/var/lib/hadron-antivirus/quarantine"
+
+mkdir -p "$APP_SUPPORT_DIR"
+mkdir -p "$LOGS_DIR"
+mkdir -p "$QUARANTINE_DIR"
+
+# Set permissions on data directories
+chown -R root:wheel "$APP_SUPPORT_DIR"
+chmod -R 755 "$APP_SUPPORT_DIR"
+
+chown -R root:wheel "$LOGS_DIR"
+chmod -R 755 "$LOGS_DIR"
+
+chown -R root:wheel "$QUARANTINE_DIR"
+chmod -R 700 "$QUARANTINE_DIR"  # More restrictive for quarantine
+
+# Load and start the service
+if [[ -f "$SERVICE_PLIST" ]]; then
+    echo "Loading Hadron Antivirus service..."
+    launchctl load "$SERVICE_PLIST"
+    
+    # Wait a moment for service to start
+    sleep 3
+    
+    # Check if service is running
+    if launchctl list | grep -q "$APP_BUNDLE.service"; then
+        echo "Hadron Antivirus service started successfully"
+    else
+        echo "Warning: Service may not have started properly"
+    fi
+fi
+
+# Add CLI tool to PATH if not already there
+echo "Configuring PATH for CLI tool..."
+SHELL_CONFIGS=(
+    "/etc/profile"
+    "/etc/bash.bashrc"
+    "/etc/zsh/zshrc"
+)
+
+for config in "${SHELL_CONFIGS[@]}"; do
+    if [[ -f "$config" ]] && ! grep -q "/usr/local/bin" "$config"; then
+        echo 'export PATH="/usr/local/bin:$PATH"' >> "$config"
+    fi
+done
+
+# Create desktop shortcut (optional)
+DESKTOP_DIR="/Users/Shared/Desktop"
+if [[ -d "$DESKTOP_DIR" ]]; then
+    echo "Creating desktop shortcut..."
+    ln -sf "$APP_PATH" "$DESKTOP_DIR/$APP_NAME.app" 2>/dev/null || true
+fi
+
+# Register with system security
+echo "Registering with system security..."
+
+# Request Full Disk Access (user will need to approve manually)
+cat > "/tmp/hadron_security_notice.txt" << EOF
+IMPORTANT: Hadron Antivirus Security Setup
+
+To provide complete protection, Hadron Antivirus requires the following permissions:
+
+1. Full Disk Access:
+   - Open System Preferences > Security & Privacy > Privacy
+   - Select "Full Disk Access" from the left panel
+   - Click the lock icon and enter your password
+   - Click the "+" button and add: $APP_PATH
+
+2. System Extension (if prompted):
+   - Allow the system extension when prompted
+   - This enables real-time file system monitoring
+
+3. Network Monitoring (optional):
+   - Allow network monitoring for enhanced protection
+   - This helps detect network-based threats
+
+The application has been installed and the background service is running.
+You can launch the application from your Applications folder.
+
+For command-line access, use: hadron-cli --help
+EOF
+
+# Show the notice to the user
+if command -v osascript &> /dev/null; then
+    osascript -e "display dialog \"$(cat /tmp/hadron_security_notice.txt)\" with title \"Hadron Antivirus - Security Setup\" buttons {\"OK\"} default button \"OK\""
+fi
+
+# Clean up temporary file
+rm -f "/tmp/hadron_security_notice.txt"
+
+# Create uninstaller script
+echo "Creating uninstaller..."
+cat > "/Applications/Uninstall Hadron Antivirus.app/Contents/MacOS/uninstall" << 'EOF'
+#!/bin/bash
+
+APP_NAME="Hadron Antivirus"
+APP_BUNDLE="com.hadron.antivirus"
+SERVICE_PLIST="/Library/LaunchDaemons/$APP_BUNDLE.service.plist"
+
+echo "Uninstalling Hadron Antivirus..."
+
+# Stop and unload service
+if [[ -f "$SERVICE_PLIST" ]]; then
+    launchctl unload "$SERVICE_PLIST" 2>/dev/null || true
+    launchctl remove "$APP_BUNDLE.service" 2>/dev/null || true
+    rm -f "$SERVICE_PLIST"
+fi
+
+# Kill processes
+pkill -f "hadron-service" 2>/dev/null || true
+pkill -f "hadron-gui" 2>/dev/null || true
+
+# Remove application files
+rm -rf "/Applications/$APP_NAME.app"
+rm -f "/usr/local/bin/hadron-cli"
+rm -rf "/Library/Application Support/Hadron Antivirus"
+rm -rf "/var/log/hadron-antivirus"
+
+# Ask user about quarantine data
+if [[ -d "/var/lib/hadron-antivirus/quarantine" ]]; then
+    if osascript -e 'display dialog "Remove quarantined files? This cannot be undone." buttons {"Keep", "Remove"} default button "Keep"' | grep -q "Remove"; then
+        rm -rf "/var/lib/hadron-antivirus"
+    fi
+fi
+
+# Remove desktop shortcut
+rm -f "/Users/Shared/Desktop/$APP_NAME.app"
+
+# Remove uninstaller
+rm -rf "/Applications/Uninstall Hadron Antivirus.app"
+
+echo "Hadron Antivirus has been uninstalled."
+osascript -e 'display dialog "Hadron Antivirus has been successfully uninstalled." buttons {"OK"} default button "OK"'
+EOF
+
+# Create uninstaller app bundle
+UNINSTALLER_APP="/Applications/Uninstall Hadron Antivirus.app"
+mkdir -p "$UNINSTALLER_APP/Contents/MacOS"
+mkdir -p "$UNINSTALLER_APP/Contents/Resources"
+
+# Make uninstaller executable
+chmod +x "$UNINSTALLER_APP/Contents/MacOS/uninstall"
+
+# Create uninstaller Info.plist
+cat > "$UNINSTALLER_APP/Contents/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>uninstall</string>
+    <key>CFBundleIdentifier</key>
+    <string>$APP_BUNDLE.uninstaller</string>
+    <key>CFBundleName</key>
+    <string>Uninstall Hadron Antivirus</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+</dict>
+</plist>
+EOF
+
+echo "Post-installation script completed successfully"
+echo "Hadron Antivirus has been installed and is running"
+
+exit 0

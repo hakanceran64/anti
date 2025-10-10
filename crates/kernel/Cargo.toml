@@ -1,0 +1,30 @@
+[package]
+name = "hadron-kernel"
+version.workspace = true
+authors.workspace = true
+description = "HADRON Antivirus Kernel - Kernel-mode drivers and components"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Core dependencies
+hadron-core = { path = "../core" }
+
+# Workspace dependencies
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+
+[lib]
+name = "hadron_kernel"
+crate-type = ["cdylib", "rlib"]

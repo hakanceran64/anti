@@ -1,0 +1,66 @@
+[package]
+name = "hadron-service"
+version.workspace = true
+authors.workspace = true
+description = "HADRON Antivirus Service - Core protection service"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Core dependencies
+hadron-core = { path = "../core" }
+hadron-kernel = { path = "../kernel" }
+
+# Workspace dependencies
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+# Quarantine-specific dependencies
+aes-gcm = "0.10"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
+rand = "0.8"
+sha2 = { workspace = true }
+chrono = { workspace = true }
+
+# Update manager dependencies
+reqwest = { version = "0.11", features = ["json", "rustls-tls", "stream"] }
+ring = "0.17"
+base64 = "0.21"
+flate2 = "1.0"
+tar = "0.4"
+futures-util = "0.3"
+hex = "0.4"
+
+# Configuration manager dependencies
+toml = { workspace = true }
+config = { workspace = true }
+
+# CLI dependencies
+clap = { version = "4.0", features = ["derive"] }
+tracing-subscriber = "0.3"
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "scan_engine_benchmark"
+harness = false
+
+[[bin]]
+name = "hadron-service"
+path = "src/main.rs"
