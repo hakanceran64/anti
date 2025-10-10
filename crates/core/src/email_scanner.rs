@@ -8,8 +8,6 @@ use std::sync::Arc;
 use tokio::fs;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
-
-/// Email attachment information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailAttachment {
     pub filename: String,
@@ -20,8 +18,6 @@ pub struct EmailAttachment {
     pub sender: String,
     pub recipient: String,
 }
-
-/// Email scanning configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailScanConfig {
     pub enabled: bool,
@@ -33,7 +29,6 @@ pub struct EmailScanConfig {
     pub allowed_extensions: Vec<String>,
     pub blocked_extensions: Vec<String>,
 }
-
 impl Default for EmailScanConfig {
     fn default() -> Self {
         Self {
@@ -66,8 +61,6 @@ impl Default for EmailScanConfig {
         }
     }
 }
-
-/// Email scanning result
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailScanResult {
     pub attachment: EmailAttachment,
@@ -75,8 +68,6 @@ pub struct EmailScanResult {
     pub action_taken: EmailAction,
     pub scan_duration_ms: u64,
 }
-
-/// Actions that can be taken on email attachments
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EmailAction {
     Allow,
@@ -85,32 +76,18 @@ pub enum EmailAction {
     StripAttachment,
     Warn,
 }
-
-/// Trait for email scanning operations
 #[async_trait]
 pub trait EmailScanner: Send + Sync {
-    /// Scan an email attachment
     async fn scan_attachment(&self, attachment: &EmailAttachment) -> Result<EmailScanResult, AntivirusError>;
-    
-    /// Extract attachments from email
     async fn extract_attachments(&self, email_path: &PathBuf) -> Result<Vec<EmailAttachment>, AntivirusError>;
-    
-    /// Check if attachment type is allowed
     fn is_attachment_allowed(&self, attachment: &EmailAttachment) -> bool;
-    
-    /// Get email scan configuration
     fn get_config(&self) -> &EmailScanConfig;
-    
-    /// Update email scan configuration
     fn update_config(&mut self, config: EmailScanConfig);
 }
-
-/// Main email scanner implementation
 pub struct EmailScannerImpl {
     config: EmailScanConfig,
     scan_engine: Arc<dyn Scanner + Send + Sync>,
 }
-
 impl EmailScannerImpl {
     pub fn new(scan_engine: Arc<dyn Scanner + Send + Sync>) -> Self {
         Self {
@@ -118,15 +95,12 @@ impl EmailScannerImpl {
             scan_engine,
         }
     }
-
     pub fn with_config(scan_engine: Arc<dyn Scanner + Send + Sync>, config: EmailScanConfig) -> Self {
         Self {
             config,
             scan_engine,
         }
     }
-
-    /// Check if file extension is in blocked list
     fn is_extension_blocked(&self, filename: &str) -> bool {
         if let Some(extension) = std::path::Path::new(filename)
             .extension()
@@ -137,8 +111,6 @@ impl EmailScannerImpl {
             false
         }
     }
-
-    /// Check if file extension is in allowed list
     fn is_extension_allowed(&self, filename: &str) -> bool {
         if let Some(extension) = std::path::Path::new(filename)
             .extension()
@@ -149,10 +121,7 @@ impl EmailScannerImpl {
             false
         }
     }
-
-    /// Determine action based on scan result and configuration
     fn determine_action(&self, attachment: &EmailAttachment, scan_result: &ScanResult) -> EmailAction {
-        // If threats found, quarantine or block
         if !scan_result.threats_found.is_empty() {
             if self.config.quarantine_infected {
                 return EmailAction::Quarantine;
@@ -160,35 +129,24 @@ impl EmailScannerImpl {
                 return EmailAction::Block;
             }
         }
-
-        // Check file extension policies
         if self.config.block_suspicious_types && self.is_extension_blocked(&attachment.filename) {
             return EmailAction::Block;
         }
-
-        // Check file size
         if attachment.size > self.config.max_attachment_size_mb * 1024 * 1024 {
             return EmailAction::Warn;
         }
-
-        // If errors occurred during scan, warn
         if !scan_result.errors.is_empty() {
             return EmailAction::Warn;
         }
-
         EmailAction::Allow
     }
 }
-
 #[async_trait]
 impl EmailScanner for EmailScannerImpl {
     async fn scan_attachment(&self, attachment: &EmailAttachment) -> Result<EmailScanResult, AntivirusError> {
         let start_time = std::time::Instant::now();
-        
         info!("Scanning email attachment: {}", attachment.filename);
         debug!("Attachment details: {:?}", attachment);
-
-        // Check if scanning is enabled
         if !self.config.enabled || !self.config.scan_attachments {
             let clean_result = ScanResult::new(uuid::Uuid::new_v4());
             return Ok(EmailScanResult {
@@ -198,8 +156,6 @@ impl EmailScanner for EmailScannerImpl {
                 scan_duration_ms: start_time.elapsed().as_millis() as u64,
             });
         }
-
-        // Check file size limits
         if attachment.size > self.config.max_attachment_size_mb * 1024 * 1024 {
             warn!("Attachment {} exceeds size limit: {} bytes", 
                   attachment.filename, attachment.size);
@@ -211,18 +167,11 @@ impl EmailScanner for EmailScannerImpl {
                 scan_duration_ms: start_time.elapsed().as_millis() as u64,
             });
         }
-
-        // Perform the actual scan
         let scan_result = self.scan_engine.scan_file(&attachment.temp_path).await?;
-        
-        // Determine action based on scan result
         let action = self.determine_action(attachment, &scan_result);
-
         let duration = start_time.elapsed().as_millis() as u64;
-        
         info!("Email attachment scan completed: {} - Action: {:?} - Duration: {}ms", 
               attachment.filename, action, duration);
-
         Ok(EmailScanResult {
             attachment: attachment.clone(),
             scan_result,
@@ -230,28 +179,15 @@ impl EmailScanner for EmailScannerImpl {
             scan_duration_ms: duration,
         })
     }
-
     async fn extract_attachments(&self, email_path: &PathBuf) -> Result<Vec<EmailAttachment>, AntivirusError> {
         debug!("Extracting attachments from email: {:?}", email_path);
-        
-        // This is a simplified implementation
-        // In a real implementation, this would parse email formats (EML, MSG, etc.)
-        // and extract attachments using libraries like mail-parser or similar
-        
         let mut attachments = Vec::new();
-        
-        // Check if file exists
         if !email_path.exists() {
             return Err(AntivirusError::FileNotFound(email_path.clone()));
         }
-
-        // Read email content (simplified - would need proper email parsing)
         let email_content = fs::read_to_string(email_path).await
             .map_err(|e| AntivirusError::IoError(e))?;
-
-        // Simple attachment detection (in real implementation, use proper email parser)
         if email_content.contains("Content-Disposition: attachment") {
-            // This is a placeholder - real implementation would properly parse MIME
             let attachment = EmailAttachment {
                 filename: "extracted_attachment.bin".to_string(),
                 content_type: "application/octet-stream".to_string(),
@@ -263,71 +199,54 @@ impl EmailScanner for EmailScannerImpl {
             };
             attachments.push(attachment);
         }
-
         debug!("Extracted {} attachments", attachments.len());
         Ok(attachments)
     }
-
     fn is_attachment_allowed(&self, attachment: &EmailAttachment) -> bool {
-        // Check if extension is explicitly blocked
         if self.is_extension_blocked(&attachment.filename) {
             return false;
         }
-
-        // If we have an allowed list and extension is not in it
         if !self.config.allowed_extensions.is_empty() && !self.is_extension_allowed(&attachment.filename) {
             return false;
         }
-
-        // Check size limits
         if attachment.size > self.config.max_attachment_size_mb * 1024 * 1024 {
             return false;
         }
-
         true
     }
-
     fn get_config(&self) -> &EmailScanConfig {
         &self.config
     }
-
     fn update_config(&mut self, config: EmailScanConfig) {
         self.config = config;
         info!("Email scanner configuration updated");
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::types::ThreatType;
     use std::path::PathBuf;
     use tempfile::NamedTempFile;
-
     struct MockScanner;
-
     #[async_trait]
     impl crate::traits::Scanner for MockScanner {
         async fn scan_file(&self, _path: &PathBuf) -> Result<ScanResult, AntivirusError> {
             Ok(ScanResult::clean())
         }
-
         async fn scan_memory(&self, _process_id: u32) -> Result<ScanResult, AntivirusError> {
             Ok(ScanResult::clean())
         }
     }
-
     #[tokio::test]
     async fn test_email_scanner_creation() {
         let scanner = EmailScannerImpl::new(Box::new(MockScanner));
         assert!(scanner.get_config().enabled);
         assert!(scanner.get_config().scan_attachments);
     }
-
     #[tokio::test]
     async fn test_attachment_allowed() {
         let scanner = EmailScannerImpl::new(Box::new(MockScanner));
-        
         let allowed_attachment = EmailAttachment {
             filename: "document.pdf".to_string(),
             content_type: "application/pdf".to_string(),
@@ -337,7 +256,6 @@ mod tests {
             sender: "test@example.com".to_string(),
             recipient: "user@example.com".to_string(),
         };
-
         let blocked_attachment = EmailAttachment {
             filename: "malware.exe".to_string(),
             content_type: "application/octet-stream".to_string(),
@@ -347,18 +265,13 @@ mod tests {
             sender: "test@example.com".to_string(),
             recipient: "user@example.com".to_string(),
         };
-
         assert!(scanner.is_attachment_allowed(&allowed_attachment));
         assert!(!scanner.is_attachment_allowed(&blocked_attachment));
     }
-
     #[tokio::test]
     async fn test_scan_attachment() {
         let scanner = EmailScannerImpl::new(Box::new(MockScanner));
-        
-        // Create a temporary file for testing
         let temp_file = NamedTempFile::new().unwrap();
-        
         let attachment = EmailAttachment {
             filename: "test.txt".to_string(),
             content_type: "text/plain".to_string(),
@@ -368,35 +281,27 @@ mod tests {
             sender: "test@example.com".to_string(),
             recipient: "user@example.com".to_string(),
         };
-
         let result = scanner.scan_attachment(&attachment).await.unwrap();
         assert!(matches!(result.action_taken, EmailAction::Allow));
         assert!(result.scan_result.threats.is_empty());
     }
-
     #[test]
     fn test_extension_checking() {
         let scanner = EmailScannerImpl::new(Box::new(MockScanner));
-        
         assert!(scanner.is_extension_blocked("malware.exe"));
         assert!(scanner.is_extension_blocked("script.vbs"));
         assert!(!scanner.is_extension_blocked("document.pdf"));
-        
         assert!(scanner.is_extension_allowed("document.pdf"));
         assert!(scanner.is_extension_allowed("spreadsheet.xlsx"));
         assert!(!scanner.is_extension_allowed("unknown.xyz"));
     }
-
     #[test]
     fn test_config_update() {
         let mut scanner = EmailScannerImpl::new(Box::new(MockScanner));
-        
         let mut new_config = EmailScanConfig::default();
         new_config.enabled = false;
         new_config.max_attachment_size_mb = 100;
-        
         scanner.update_config(new_config);
-        
         assert!(!scanner.get_config().enabled);
         assert_eq!(scanner.get_config().max_attachment_size_mb, 100);
     }

@@ -1,6 +1,9 @@
 # Kiro AI assistant files
 .kiro/
 
+installer/
+signatures/
+
 # Rust
 /target/
 Cargo.lock

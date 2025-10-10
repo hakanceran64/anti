@@ -5,9 +5,7 @@ use hadron_core::{
 use std::path::PathBuf;
 use chrono::Utc;
 use serde_json;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a logging configuration
     let config = LoggingConfig {
         log_level: "info".to_string(),
         log_file_path: PathBuf::from("./demo_event.log"),
@@ -17,15 +15,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         enable_windows_event_log: false,
         enable_json_logging: true,
     };
-
-    // Create and initialize the EventLogger
     let event_logger = EventLogger::new(config)?;
     event_logger.initialize()?;
-
     println!("EventLogger Demo - Comprehensive Logging System");
     println!("===============================================");
-
-    // Demo 1: Basic structured event
     println!("\n1. Logging basic structured event...");
     let basic_event = StructuredEvent::new(
         "demo_startup",
@@ -35,10 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .with_user("demo_user")
     .with_correlation_id("demo-session-001");
-
     event_logger.log_structured_event(basic_event)?;
-
-    // Demo 2: Security event with details
     println!("2. Logging security event with details...");
     let security_details = serde_json::json!({
         "source_ip": "192.168.1.100",
@@ -46,7 +36,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "authentication_method": "password",
         "session_duration": 3600
     });
-
     log_structured_security_event(
         &event_logger,
         "user_authentication",
@@ -55,8 +44,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("admin"),
         Some(security_details),
     )?;
-
-    // Demo 3: High severity threat detection event
     println!("3. Logging threat detection event...");
     let threat_details = serde_json::json!({
         "threat_name": "Trojan.Win32.Demo",
@@ -65,7 +52,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "detection_method": "signature",
         "quarantine_status": "quarantined"
     });
-
     let threat_event = StructuredEvent::new(
         "threat_detected",
         EventSeverity::Critical,
@@ -76,10 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .with_details(threat_details)
     .with_correlation_id("threat-alert-001")
     .with_session_id("scan-session-123");
-
     event_logger.log_structured_event(threat_event)?;
-
-    // Demo 4: Audit event
     println!("4. Logging audit event...");
     let audit_event = AuditEvent {
         event_type: AuditEventType::Configuration,
@@ -94,10 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "new_value": true
         })),
     };
-
     event_logger.log_audit_event(audit_event)?;
-
-    // Demo 5: Performance metrics event
     println!("5. Logging performance metrics...");
     let performance_metrics = serde_json::json!({
         "cpu_usage_percent": 15.5,
@@ -108,7 +88,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "active_threads": 4,
         "queue_size": 25
     });
-
     let performance_event = StructuredEvent::new(
         "performance_metrics",
         EventSeverity::Debug,
@@ -117,10 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .with_details(performance_metrics)
     .with_correlation_id("perf-monitor-001");
-
     event_logger.log_structured_event(performance_event)?;
-
-    // Demo 6: Multiple events of the same type (for statistics)
     println!("6. Logging multiple scan events...");
     for i in 1..=5 {
         let scan_details = serde_json::json!({
@@ -129,7 +105,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "duration_ms": i * 1000,
             "threats_found": if i % 2 == 0 { 1 } else { 0 }
         });
-
         let scan_event = StructuredEvent::new(
             "scan_completed",
             if i % 2 == 0 { EventSeverity::High } else { EventSeverity::Medium },
@@ -138,26 +113,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .with_details(scan_details)
         .with_correlation_id(&format!("scan-batch-{}", i));
-
         event_logger.log_structured_event(scan_event)?;
     }
-
-    // Demo 7: Show event statistics
     println!("\n7. Event Statistics:");
     let stats = event_logger.get_event_statistics();
     for (event_type, count) in stats {
         println!("   {}: {} events", event_type, count);
     }
-
-    // Demo 8: Log rotation and archiving
     println!("\n8. Testing log rotation and archiving...");
     event_logger.archive_logs()?;
     println!("   Logs archived successfully");
-
     event_logger.cleanup_old_logs(30)?;
     println!("   Old logs cleaned up (keeping last 30 days)");
-
-    // Demo 9: Complex nested event data
     println!("9. Logging complex nested event data...");
     let complex_data = serde_json::json!({
         "scan_summary": {
@@ -195,7 +162,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "network_active": true
         }
     });
-
     let complex_event = StructuredEvent::new(
         "comprehensive_scan_report",
         EventSeverity::High,
@@ -206,12 +172,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .with_details(complex_data)
     .with_correlation_id("comprehensive-scan-001")
     .with_session_id("daily-scan-session");
-
     event_logger.log_structured_event(complex_event)?;
-
     println!("\n✅ EventLogger demonstration completed successfully!");
     println!("📄 Check 'demo_event.log' for the structured log output");
     println!("🔍 All events include JSON structured data for easy parsing and analysis");
-
     Ok(())
 }

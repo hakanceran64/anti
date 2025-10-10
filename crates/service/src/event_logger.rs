@@ -394,25 +394,22 @@ impl ServiceEventLogger {
         logger.log_audit_event(audit_event)
     }
 
-    /// Get event statistics
+
     pub async fn get_event_statistics(&self) -> std::collections::HashMap<String, u64> {
         let logger = self.core_logger.read().await;
         logger.get_event_statistics()
     }
 
-    /// Archive logs
     pub async fn archive_logs(&self) -> Result<(), Box<dyn std::error::Error>> {
         let logger = self.core_logger.read().await;
         logger.archive_logs()
     }
 
-    /// Cleanup old logs
     pub async fn cleanup_old_logs(&self, days_to_keep: u32) -> Result<(), Box<dyn std::error::Error>> {
         let logger = self.core_logger.read().await;
         logger.cleanup_old_logs(days_to_keep)
     }
 
-    /// Log performance metrics
     pub async fn log_performance_metrics(
         &self,
         component: &str,
@@ -431,7 +428,6 @@ impl ServiceEventLogger {
         logger.log_structured_event(event)
     }
 
-    /// Log system health check
     pub async fn log_health_check(
         &self,
         component: &str,
@@ -616,12 +612,10 @@ mod tests {
         let config = create_test_config();
         let logger = ServiceEventLogger::new(config, "TestService").unwrap();
         
-        // Log some events
         let _ = logger.log_service_startup().await;
-        let _ = logger.log_service_startup().await; // Log same event twice
+        let _ = logger.log_service_startup().await;
         
         let stats = logger.get_event_statistics().await;
         assert!(stats.contains_key("service_startup"));
-        // Note: The actual count might be different due to async nature
     }
 }
